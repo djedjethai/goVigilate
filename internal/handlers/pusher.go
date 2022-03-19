@@ -46,7 +46,7 @@ func (repo *DBRepo) TestPusher(w http.ResponseWriter, r *http.Request) {
 
 	// trigger the public-channel(the only one we setted up)
 	// means that any one who reach this handler will trigger
-	// the event link to it "on the browser page" listening to this channel
+	// the event(test-event) link to it "on the browser page" listening to this channel
 	err := repo.App.WsClient.Trigger("public-channel", "test-event", data)
 	if err != nil {
 		log.Println(err)
