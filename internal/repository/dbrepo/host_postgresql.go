@@ -74,6 +74,50 @@ func (m *postgresDBRepo) GetHostByID(id int) (models.Host, error) {
 	return h, nil
 }
 
+func (m *postgresDBRepo) AllHosts() ([]*models.Host, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var hosts []*models.Host
+	stmt := `select id, host_name, canonical_name, url, ip, ipv6, location, os, active, created_at, updated_at from hosts`
+
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		h := &models.Host{}
+		err = rows.Scan(
+			&h.ID,
+			&h.HostName,
+			&h.CanonicalName,
+			&h.URL,
+			&h.IP,
+			&h.IPV6,
+			&h.Location,
+			&h.OS,
+			&h.Active,
+			&h.CreatedAt,
+			&h.UpdatedAt,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		hosts = append(hosts, h)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return hosts, nil
+}
+
 func (m *postgresDBRepo) UpdateHost(h models.Host) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

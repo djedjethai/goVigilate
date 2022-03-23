@@ -119,7 +119,18 @@ func (repo *DBRepo) PostSettings(w http.ResponseWriter, r *http.Request) {
 
 // AllHosts displays list of all hosts
 func (repo *DBRepo) AllHosts(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "hosts", nil, nil)
+	h, err := repo.DB.AllHosts()
+	if err != nil {
+		log.Println(err)
+		ClientError(w, r, http.StatusBadRequest)
+		return
+	}
+
+	// update app config
+	vars := make(jet.VarMap)
+	vars.Set("hosts", h)
+
+	err = helpers.RenderPage(w, r, "hosts", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -158,34 +169,46 @@ func (repo *DBRepo) PostHost(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(chi.URLParam(r, "id"))
 
 	var h models.Host
-	var hostID int
 	if id > 0 {
+		// get the host from db
+		host, err := repo.DB.GetHostByID(id)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		h = host
+	}
 
+	h.ID = id
+	h.HostName = r.Form.Get("host_name")
+	h.CanonicalName = r.Form.Get("canonical_name")
+	h.URL = r.Form.Get("url")
+	h.IP = r.Form.Get("ip")
+	h.IPV6 = r.Form.Get("ipv6")
+	h.Location = r.Form.Get("location")
+	h.OS = r.Form.Get("os")
+	act, _ := strconv.Atoi(r.Form.Get("active"))
+	h.Active = act
+
+	// add to db
+	if id > 0 {
+		err := repo.DB.UpdateHost(h)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	} else {
-
-		h.ID = id
-		h.HostName = r.Form.Get("host_name")
-		h.CanonicalName = r.Form.Get("canonical_name")
-		h.URL = r.Form.Get("url")
-		h.IP = r.Form.Get("ip")
-		h.IPV6 = r.Form.Get("ipv6")
-		h.Location = r.Form.Get("location")
-		h.OS = r.Form.Get("os")
-		act, _ := strconv.Atoi(r.Form.Get("active"))
-		h.Active = act
-
-		// add to db
 		newID, err := repo.DB.InsertHost(h)
 		if err != nil {
 			log.Println(err)
 			helpers.ServerError(w, r, err)
 			return
 		}
-		hostID = newID
+		h.ID = newID
 	}
 
 	repo.App.Session.Put(r.Context(), "flash", fmt.Sprintf("Changes saved"))
-	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", hostID), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/admin/host/%d", h.ID), http.StatusSeeOther)
 
 }
 
