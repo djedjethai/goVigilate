@@ -1,7 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"runtime/debug"
+	"strconv"
+
 	"github.com/CloudyKit/jet/v6"
 	"github.com/djedjethai/vigilate/internal/config"
 	"github.com/djedjethai/vigilate/internal/driver"
@@ -10,10 +16,6 @@ import (
 	"github.com/djedjethai/vigilate/internal/repository"
 	"github.com/djedjethai/vigilate/internal/repository/dbrepo"
 	"github.com/go-chi/chi"
-	"log"
-	"net/http"
-	"runtime/debug"
-	"strconv"
 )
 
 //Repo is the repository
@@ -42,13 +44,26 @@ func NewPostgresqlHandlers(db *driver.DB, a *config.AppConfig) *DBRepo {
 
 // AdminDashboard displays the dashboard
 func (repo *DBRepo) AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	vars := make(jet.VarMap)
-	vars.Set("no_healthy", 0)
-	vars.Set("no_problem", 0)
-	vars.Set("no_pending", 0)
-	vars.Set("no_warning", 0)
+	pending, healthy, warning, problem, err := repo.DB.GetAllServiceStatusCounts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	err := helpers.RenderPage(w, r, "dashboard", vars, nil)
+	vars := make(jet.VarMap)
+	vars.Set("no_healthy", healthy)
+	vars.Set("no_problem", problem)
+	vars.Set("no_pending", pending)
+	vars.Set("no_warning", warning)
+
+	AllHosts, err := repo.DB.AllHosts()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	vars.Set("hosts", AllHosts)
+
+	err = helpers.RenderPage(w, r, "dashboard", vars, nil)
 	if err != nil {
 		printTemplateError(w, err)
 	}
@@ -365,13 +380,22 @@ func (repo *DBRepo) TogglerServiceForHost(w http.ResponseWriter, r *http.Request
 		log.Println(err)
 	}
 
+	var resp serviceJSON
+	resp.OK = true
+
 	hostID, _ := strconv.Atoi(r.Form.Get("host_id"))
 	serviceID, _ := strconv.Atoi(r.Form.Get("service_id"))
 	active, _ := strconv.Atoi(r.Form.Get("active"))
 
 	log.Println("Data: ", hostID, serviceID, active)
 
-	var resp serviceJSON
-	resp.OK = true
+	err = repo.DB.UpdateHostServiceStatus(hostID, serviceID, active)
+	if err != nil {
+		log.Println(err)
+		resp.OK = false
+	}
 
+	out, _ := json.MarshalIndent(resp, "", "	")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
 }
