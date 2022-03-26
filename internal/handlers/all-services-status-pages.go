@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"github.com/CloudyKit/jet/v6"
 	"github.com/djedjethai/vigilate/internal/helpers"
+	"log"
 	"net/http"
 )
 
@@ -31,7 +33,19 @@ func (repo *DBRepo) AllProblemServices(w http.ResponseWriter, r *http.Request) {
 
 // AllPendingServices lists all pending services
 func (repo *DBRepo) AllPendingServices(w http.ResponseWriter, r *http.Request) {
-	err := helpers.RenderPage(w, r, "pending", nil, nil)
+	// get all host services(with host info) for status pending
+
+	hostServices, err := repo.DB.GetServicesByStatus("pending")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	vars := make(jet.VarMap)
+	vars.Set("services", hostServices)
+
+	err = helpers.RenderPage(w, r, "pending", vars, nil)
+
 	if err != nil {
 		printTemplateError(w, err)
 	}
