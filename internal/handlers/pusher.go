@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/pusher/pusher-http-go"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,7 +17,7 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	u, _ := repo.DB.GetUserById(userID)
 
 	// from the browser
-	params, _ := ioutil.ReadAll(r.Body)
+	params, _ := io.ReadAll(r.Body)
 
 	// identicate the user to the pusher
 	presenceData := pusher.MemberData{
