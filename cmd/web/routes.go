@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/djedjethai/vigilate/internal/handlers"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 

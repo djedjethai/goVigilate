@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/djedjethai/vigilate/internal/models"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const (
@@ -54,6 +54,14 @@ func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
 	msg, newStatus := repo.testServiceForHost(h, hs)
 
 	// update the host service in the database with status(if changed) and last check
+	hs.Status = newStatus
+	hs.LastCheck = time.Now()
+	hs.UpdatedAt = time.Now()
+	err = repo.DB.UpdateHostService(hs)
+	if err != nil {
+		okay = false
+		log.Println(err)
+	}
 
 	// broadcast service status changed event
 

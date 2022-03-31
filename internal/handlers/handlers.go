@@ -15,7 +15,7 @@ import (
 	"github.com/djedjethai/vigilate/internal/models"
 	"github.com/djedjethai/vigilate/internal/repository"
 	"github.com/djedjethai/vigilate/internal/repository/dbrepo"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 //Repo is the repository
