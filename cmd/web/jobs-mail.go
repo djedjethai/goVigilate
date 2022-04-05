@@ -60,9 +60,9 @@ func (w Worker) stop() {
 func NewDispatcher(jobQueue chan channeldata.MailJob, maxWorkers int) *Dispatcher {
 	workerPool := make(chan chan channeldata.MailJob, maxWorkers)
 	return &Dispatcher{
-		jobQueue:   jobQueue,
-		maxWorkers: maxWorkers,
 		workerPool: workerPool,
+		maxWorkers: maxWorkers,
+		jobQueue:   jobQueue,
 	}
 }
 
