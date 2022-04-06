@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 )
 
 //""
@@ -15,7 +16,7 @@ type job struct {
 
 // we don't use a pointer receiver for the receiver
 // which is unusual but appropriate here
-func (j job) run() {
+func (j job) Run() {
 	repo.ScheduledCheck(j.HostServiceID)
 }
 
@@ -44,10 +45,10 @@ func startMonitoring() {
 			// if in db the schedule unit has been set to "d"(day)
 			if x.ScheduleUnit == "d" {
 				// see the doc of the cron package
-				sch := fmt.Sprintf("@every %d%s", x.ScheduleNumber*24, "h")
+				sch = fmt.Sprintf("@every %d%s", x.ScheduleNumber*24, "h")
 
 			} else {
-				sch := fmt.Sprintf("@every %d%s", x.ScheduleNumber, x.ScheduleUnit)
+				sch = fmt.Sprintf("@every %d%s", x.ScheduleNumber, x.ScheduleUnit)
 			}
 
 			// create a job
@@ -64,9 +65,34 @@ func startMonitoring() {
 			// broadcast over websockets the fact that the service is scheduled
 			payload := make(map[string]string)
 			payload["message"] = "scheduling"
-			data["host_service_id"] = strconv.Itoa(x.ID)
-			yearone := time.Date(".....to finish here ......")
-			err := app.WsClient.Trigger("public-channel", "test-event", "monitoring")
+			payload["host_service_id"] = strconv.Itoa(x.ID)
+			// year 0001 then some numbers for the days, time
+			// the thing is in Go we don't want to deal with empty value
+			// so instead of we put the year 0001
+			yearOne := time.Date(0001, 11, 17, 20, 34, 58, 65138737, time.UTC)
+			if app.Scheduler.Entry(app.MonitorMap[x.ID]).Next.After(yearOne) {
+				payload["next_run"] = app.Scheduler.Entry(app.MonitorMap[x.ID]).Next.Format("2006-01-03 3:04:05 PM")
+			} else {
+				payload["next_run"] = "Pending...."
+			}
+			payload["host"] = x.HostName
+			payload["service"] = x.Service.ServiceName
+			if x.LastCheck.After(yearOne) {
+				payload["last_run"] = x.LastCheck.Format("2006-01-03 3:04:05 PM")
+			} else {
+				payload["next_run"] = "Pending...."
+			}
+			payload["schedule"] = fmt.Sprintf("@every %d%s", x.ScheduleNumber, x.ScheduleUnit)
+
+			err = app.WsClient.Trigger("public-channel", "next-run-event", payload)
+			if err != nil {
+				log.Println(err)
+			}
+
+			err = app.WsClient.Trigger("public-channel", "schedule-changed-event", payload)
+			if err != nil {
+				log.Println(err)
+			}
 
 			// end of range
 		}

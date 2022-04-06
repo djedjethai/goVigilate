@@ -399,3 +399,13 @@ func (repo *DBRepo) TogglerServiceForHost(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
 }
+
+func (repo *DBRepo) SetSystemPref(w http.ResponseWriter, r *http.Request) {
+	var resp jsonResp
+	resp.OK = true
+	resp.Message = "cool"
+
+	out, _ := json.MarshalIndent(resp, "", "   ")
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(out)
+}
