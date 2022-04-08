@@ -33,7 +33,22 @@ type jsonResp struct {
 
 // ScheduledCheck perform a schedule check on a host service by id
 func (repo *DBRepo) ScheduledCheck(hostServiceID int) {
+	log.Println("********* Running check for: ", hostServiceID)
+	hs, err := repo.DB.GetHostServiceByID(hostServiceID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
+	h, err := repo.DB.GetHostByID(hs.HostID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// testServiceForHost() is a few lines below
+	newStatus, msg := repo.testServiceForHost(h, hs)
+	log.Println("New status is: ", newStatus, " and message is message is: ", msg)
 }
 
 func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +127,7 @@ func testHTTPForHost(url string) (string, string) {
 		strings.TrimSuffix(url, "/")
 	}
 
+	// replace https to http
 	url = strings.Replace(url, "https://", "http://", -1)
 
 	resp, err := http.Get(url)

@@ -22,7 +22,7 @@ func routes() http.Handler {
 
 	mux.Get("/user/logout", handlers.Repo.Logout)
 
-	mux.Get("/pusher-test", handlers.Repo.TestPusher)
+	// mux.Get("/pusher-test", handlers.Repo.TestPusher)
 
 	// routes to our pusher
 	mux.Route("/pusher", func(mux chi.Router) {

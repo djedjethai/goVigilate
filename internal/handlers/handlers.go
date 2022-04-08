@@ -414,6 +414,8 @@ func (repo *DBRepo) SetSystemPref(w http.ResponseWriter, r *http.Request) {
 		resp.Message = err.Error()
 	}
 
+	repo.App.PreferenceMap["monitoring_live"] = prefValue
+
 	out, _ := json.MarshalIndent(resp, "", "   ")
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
@@ -426,11 +428,15 @@ func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
 
 	if enabled == "1" {
 		// start monitoring
-		log.Println("turning monitoring off")
+		log.Println("turning monitoring on")
+
+		repo.App.PreferenceMap["monitoring_live"] = "1"
+		repo.StartMonitoring()
 		repo.App.Scheduler.Start()
 	} else {
 		// stop monitoring
 		log.Println("turning monitoring off")
+		repo.App.PreferenceMap["monitoring_live"] = "0"
 		// the x value is the entryID in the scheduler
 		// remove all items in map from schedule
 		for _, x := range repo.App.MonitorMap {
@@ -446,6 +452,18 @@ func (repo *DBRepo) ToggleMonitoring(w http.ResponseWriter, r *http.Request) {
 		for _, i := range repo.App.Scheduler.Entries() {
 			repo.App.Scheduler.Remove(i.ID)
 		}
+
+		repo.App.Scheduler.Stop()
+
+		data := make(map[string]string)
+		data["message"] = "Monitoring is off..."
+
+		// that app is starting to monitor
+		err := app.WsClient.Trigger("public-channel", "app-stopping", data)
+		if err != nil {
+			log.Println(err)
+		}
+
 	}
 
 	var resp jsonResp

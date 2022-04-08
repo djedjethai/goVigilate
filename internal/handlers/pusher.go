@@ -40,15 +40,15 @@ func (repo *DBRepo) PusherAuth(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(response)
 }
 
-func (repo *DBRepo) TestPusher(w http.ResponseWriter, r *http.Request) {
-	data := make(map[string]string)
-	data["message"] = "Hello world"
-
-	// trigger the public-channel(the only one we setted up)
-	// means that any one who reach this handler will trigger
-	// the event(test-event) link to it "on the browser page" listening to this channel
-	err := repo.App.WsClient.Trigger("public-channel", "test-event", data)
-	if err != nil {
-		log.Println(err)
-	}
-}
+// func (repo *DBRepo) TestPusher(w http.ResponseWriter, r *http.Request) {
+// 	data := make(map[string]string)
+// 	data["message"] = "Hello world"
+//
+// 	// trigger the public-channel(the only one we setted up)
+// 	// means that any one who reach this handler will trigger
+// 	// the event(test-event) link to it "on the browser page" listening to this channel
+// 	err := repo.App.WsClient.Trigger("public-channel", "test-event", data)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// }
