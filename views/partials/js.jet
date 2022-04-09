@@ -20,6 +20,26 @@
         warningAlert(data.message);
     })
 
+    publicChannel.bind("host-service-status-changed", function (data) {
+        warningAlert(data.message);
+    })
+
+    publicChannel.bind("host-service-count-changed", function (data) {
+	// we want this code to execute only if we receive this event 
+	// and we are on that page
+console.log("***** the datas: ", data)
+	let healthyCountExists = !!document.getElementById("healthy_count")
+	// if exists it means we are on the right page
+	if(healthyCountExists){
+        warningAlert(data.healthy_count);
+		document.getElementById("healthy_count").innerHTML = data.healthy_count;
+		document.getElementById("problem_count").innerHTML = data.problem_count;
+		document.getElementById("pending_count").innerHTML = data.pending_count;
+		document.getElementById("warning_count").innerHTML = data.warning_count;
+	}
+
+    })
+
 	// things we want to look for
 	// - service goes down
 	// - service goes up (from healthy to problem for ex)

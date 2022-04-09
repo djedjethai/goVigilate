@@ -47,8 +47,59 @@ func (repo *DBRepo) ScheduledCheck(hostServiceID int) {
 	}
 
 	// testServiceForHost() is a few lines below
-	newStatus, msg := repo.testServiceForHost(h, hs)
+	msg, newStatus := repo.testServiceForHost(h, hs)
+
+	hostServiceStatusChanged := false
+	if newStatus != hs.Status {
+		hostServiceStatusChanged = true
+	}
+
+	// if the host service has changed, broadcast to all clients
+	if hostServiceStatusChanged {
+		data := make(map[string]string)
+		data["message"] = fmt.Sprintf("host service %s on %s has changed to %s", hs.Service.ServiceName, h.HostName, newStatus)
+		repo.broadcastMessage("public-channel", "host-service-status-changed", data)
+
+		// if appropriate, send email or sms message
+	}
+
+	// update host service record in db with status(if changed)
+	// and update the last check
+	hs.Status = newStatus
+	hs.LastCheck = time.Now()
+	err = repo.DB.UpdateHostService(hs)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// update the service count on the front-end
+	// we got the datas from the db as we updated it already
+	if hostServiceStatusChanged {
+		pending, healthy, warning, problem, err := repo.DB.GetAllServiceStatusCounts()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		data := make(map[string]string)
+		data["pending_count"] = strconv.Itoa(pending)
+		data["healthy_count"] = strconv.Itoa(healthy)
+		data["warning_count"] = strconv.Itoa(warning)
+		data["problem_count"] = strconv.Itoa(problem)
+
+		repo.broadcastMessage("public-channel", "host-service-count-changed", data)
+	}
+
 	log.Println("New status is: ", newStatus, " and message is message is: ", msg)
+}
+
+func (repo *DBRepo) broadcastMessage(channel, messageType string, data map[string]string) {
+
+	err := app.WsClient.Trigger(channel, messageType, data)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (repo *DBRepo) TestCheck(w http.ResponseWriter, r *http.Request) {
